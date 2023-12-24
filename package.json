@@ -1,6 +1,7 @@
 {
   "name": "omori",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "scripts": {
     "build": "mkdir -p dist && tar xf game.tar -C dist && tsc",
@@ -13,6 +14,5 @@
     "@types/nw.js": "^0.13.20",
     "@types/pixi.js": "^4.8.9",
     "typescript": "^4.9.5"
-  },
-  "type": "module"
+  }
 }
