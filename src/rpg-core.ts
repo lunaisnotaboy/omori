@@ -686,7 +686,7 @@ class Point extends PIXI.Point {
    * @param x The X coordinate
    * @param y The Y coordinate
    */
-  constructor(x: number, y: number) {
+  constructor(x?: number, y?: number) {
     super(x, y)
   }
 }
@@ -3149,7 +3149,7 @@ class Sprite extends PIXI.Sprite {
   private _isPicture: boolean
 
   /** @param bitmap The image for the sprite */
-  constructor(bitmap: Bitmap) {
+  constructor(bitmap?: Bitmap) {
     let texture = new PIXI.Texture(new PIXI.BaseTexture())
 
     super(texture)
@@ -3537,6 +3537,372 @@ class Sprite extends PIXI.Sprite {
         }
       }
     }
+  }
+}
+
+//------------------------------------------------------------------------------
+
+/** The tilemap which displays a 2D tile-based game map */
+class Tilemap extends PIXI.Container {
+  public _height: number
+  public _lastTiles: number[][][][]
+  public _layerHeight: number
+  public _layerWidth: number
+  public _lowerBitmap!: Bitmap
+  public _lowerLayer!: Sprite
+  public _mapData?: number[]
+  public _mapHeight: number
+  public _mapWidth: number
+  public _margin: number
+  public _tileHeight: number
+  public _tileWidth: number
+  public _upperBitmap!: Bitmap
+  public _upperLayer!: Sprite
+  public _width: number
+
+  /** The animation count for autotiles */
+  public animationCount: number
+
+  public animationFrame?: number
+
+  /** The bitmaps used as a tileset */
+  public bitmaps: Bitmap[]
+
+  /** The tileset flags */
+  public flags: number[]
+
+  /** Whether or not the tilemap loops horizontally */
+  public horizontalWrap: boolean
+
+  /** The origin point of the tilemap for scrolling */
+  public origin: Point
+
+  public static TILE_ID_A1 = 2048
+  public static TILE_ID_A2 = 2816
+  public static TILE_ID_A3 = 5888
+  public static TILE_ID_A5 = 1536
+  public static TILE_ID_B = 0
+  public static TILE_ID_C = 256
+  public static TILE_ID_D = 512
+  public static TILE_ID_E = 768
+  public static TILE_ID_MAX = 8192
+
+  /** Whether or not the tilemap loops vertically */
+  public verticalWrap: boolean
+
+  constructor() {
+    super()
+
+    this._margin = 20
+
+    this._height = Graphics.height + this._margin * 2
+    this._lastTiles = []
+    this._layerHeight = 0
+    this._layerWidth = 0
+    this._mapHeight = 0
+    this._mapWidth = 0
+    this._tileHeight = 48
+    this._tileWidth = 48
+    this._width = Graphics.width + this._margin * 2
+
+    this.animationCount = 0
+    this.bitmaps = []
+    this.flags = []
+    this.horizontalWrap = false
+    this.origin = new Point()
+    this.verticalWrap = false
+
+    this._createLayers()
+    this.refresh()
+  }
+
+  public static getAutotileKind(tileId: number) {
+    return Math.floor((tileId - this.TILE_ID_A1) / 48)
+  }
+
+  /** The height of the screen in pixels */
+  // @ts-ignore
+  public get height() {
+    return this._height
+  }
+
+  public set height(value: number) {
+    if (this._height !== value) {
+      this._height = value
+
+      this._createLayers()
+    }
+  }
+
+  public static isAutotile(tileId: number) {
+    return tileId >= this.TILE_ID_A1
+  }
+
+  /**
+   * Checks whether or not the tilemap is ready to render
+   *
+   * @return Whether or not the tilemap is ready to render
+   */
+  public isReady() {
+    for (let i = 0; i < this.bitmaps.length; i++) {
+      if (this.bitmaps[i] && !this.bitmaps[i].isReady()) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  public static isVisibleTile(tileId: number) {
+    return tileId > 0 && tileId < this.TILE_ID_MAX
+  }
+
+  /** Forces the entire tilemap to repaint */
+  public refresh() {
+    this._lastTiles.length = 0
+  }
+
+  /** The height of a tile in pixels */
+  public get tileHeight() {
+    return this._tileHeight
+  }
+
+  public set tileHeight(value: number) {
+    if (this._tileHeight !== value) {
+      this._tileHeight = value
+
+      this._createLayers()
+    }
+  }
+
+  /** The width of a tile in pixels */
+  public get tileWidth() {
+    return this._tileWidth
+  }
+
+  public set tileWidth(value: number) {
+    if (this._tileWidth !== value) {
+      this._tileWidth = value
+
+      this._createLayers()
+    }
+  }
+
+  /** Updates the tilemap for each frame */
+  public update() {
+    this.animationCount++
+
+    this.animationFrame = Math.floor(this.animationCount / 30)
+
+    this.children.forEach(child => {
+      if ((child as any).update) {
+        (child as any).update()
+      }
+    })
+
+    for (let i = 0; i < this.bitmaps.length; i++) {
+      if (this.bitmaps[i]) {
+        this.bitmaps[i].touch()
+      }
+    }
+  }
+
+  /** The width of the screen in pixels */
+  // @ts-ignore
+  public get width() {
+    return this._width
+  }
+
+  public set width(value: number) {
+    if (this._width !== value) {
+      this._width = value
+
+      this._createLayers()
+    }
+  }
+
+  private _compareChildOrder(a: PIXI.DisplayObject, b: PIXI.DisplayObject) {
+    if ((a as any).z !== (b as any).z) {
+      return (a as any).z - (b as any).z
+    } else if (a.y !== b.y) {
+      return a.y - b.y
+    }
+
+    return (a as any).spriteId - (b as any).spriteId
+  }
+
+  private _createLayers() {
+    let height = this._height
+    let margin = this._margin
+    let width = this._width
+
+    let tileCols = Math.ceil(width / this._tileWidth) + 1
+    let tileRows = Math.ceil(height / this._tileHeight) + 1
+
+    let layerHeight = tileRows * this._tileHeight
+    let layerWidth = tileCols * this._tileWidth
+
+    this._lowerBitmap = new Bitmap(layerWidth, layerHeight)
+    this._upperBitmap = new Bitmap(layerWidth, layerHeight)
+
+    this._layerHeight = layerHeight
+    this._layerWidth = layerWidth
+
+    this._lowerLayer = new Sprite()
+
+    ;(this._lowerLayer as any).move(-margin, -margin, width, height)
+
+    ;(this._lowerLayer as any).z = 0
+
+    this._upperLayer = new Sprite()
+
+    ;(this._upperLayer as any).move(-margin, -margin, width, height)
+
+    ;(this._upperLayer as any).z = 4
+
+    for (let i = 0; i < 4; i++) {
+      this._lowerLayer.addChild(new Sprite(this._lowerBitmap))
+      this._upperLayer.addChild(new Sprite(this._upperBitmap))
+    }
+
+    this.addChild(this._lowerLayer)
+    this.addChild(this._upperLayer)
+  }
+
+  private _isHigherTile(tileId: number) {
+    return this.flags[tileId] & 0x10
+  }
+
+  private _isOverpassPosition(mx: number, my: number) {
+    return false
+  }
+
+  private _paintAllTiles(startX: number, startY: number) {
+    let tileCols = Math.ceil(this._width / this._tileWidth) + 1
+    let tileRows = Math.ceil(this._height / this._tileHeight) + 1
+
+    for (let x = 0; x < tileCols; x++) {
+      for (let y = 0; x < tileRows; y++) {
+        this._paintTiles(startX, startY, x, y)
+      }
+    }
+  }
+
+  private _paintTiles(startX: number, startY: number, x: number, y: number) {
+    let tableEdgeVirtualId = 10000
+
+    let mx = startX + x
+    let my = startY + y
+
+    let dx = (mx * this._tileWidth).mod(this._layerWidth)
+    let dy = (my * this._tileHeight).mod(this._layerHeight)
+    let lx = dx / this._tileWidth
+    let ly = dy / this._tileHeight
+
+    let tileId0 = this._readMapData(mx, my, 0)
+  }
+
+  private _readLastTiles(i: number, x: number, y: number) {
+    let array1 = this._lastTiles[i]
+
+    if (array1) {
+      let array2 = array1[y]
+
+      if (array2) {
+        let tiles = array2[x]
+
+        if (tiles) {
+          return tiles
+        }
+      }
+    }
+
+    return []
+  }
+
+  private _readMapData(x: number, y: number, z: number) {
+    if (this._mapData) {
+      let height = this._mapHeight
+      let width = this._mapWidth
+
+      if (this.horizontalWrap) {
+        x = x.mod(width)
+      }
+
+      if (this.verticalWrap) {
+        y = y.mod(height)
+      }
+
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        return this._mapData[(z * height + y) * width + x] || 0
+      }
+
+      return 0
+    }
+
+    return 0
+  }
+
+  private _sortChildren() {
+    this.children.sort(this._compareChildOrder.bind(this))
+  }
+
+  private _updateLayerPositions(startX: number, startY: number) {
+    let m = this._margin
+    let ox = Math.floor(this.origin.x)
+    let oy = Math.floor(this.origin.y)
+    let x2 = (ox - m).mod(this._layerWidth)
+    let y2 = (oy - m).mod(this._layerHeight)
+
+    let h1 = this._layerHeight - y2
+    let w1 = this._layerWidth - x2
+
+    let h2 = this._height - h1
+    let w2 = this._width - w1
+
+    for (let i = 0; i < 2; i++) {
+      let children: PIXI.DisplayObject[]
+
+      if (i === 0) {
+        children = this._lowerLayer.children
+      } else {
+        children = this._upperLayer.children
+      }
+
+      (children[0] as any).move(0, 0, w1, h1)
+      (children[0] as any).setFrame(x2, y2, w1, h1)
+      (children[1] as any).move(w1, 0, w2, h1)
+      (children[1] as any).setFrame(0, y2, w2, h1)
+      (children[2] as any).move(0, h1, w1, h2)
+      (children[2] as any).setFrame(x2, 0, w1, h2)
+      (children[3] as any).move(w1, h1, w2, h2)
+      (children[3] as any).setFrame(0, 0, w2, h2)
+    }
+  }
+
+  private _updateTransform() {
+    let ox = Math.floor(this.origin.x)
+    let oy = Math.floor(this.origin.y)
+    let startX = Math.floor((ox - this._margin) / this._tileWidth)
+    let startY = Math.floor((oy - this._margin) / this._tileHeight)
+
+    this._updateLayerPositions(startX, startY)
+  }
+
+  private _writeLastTiles(i: number, x: number, y: number, tiles: number[]) {
+    let array1 = this._lastTiles[i]
+
+    if (!array1) {
+      array1 = this._lastTiles[i] = []
+    }
+
+    let array2 = array1[y]
+
+    if (!array2) {
+      array2 = array1[y] = []
+    }
+
+    array2[x] = tiles
   }
 }
 
