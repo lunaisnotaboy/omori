@@ -6,13 +6,13 @@
     "isolatedModules": false,
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "outDir": "./js",
+    "outDir": "./dist/js",
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "es5"
+    "target": "ESNext"
   },
   "exclude": ["./various/**/*"],
   "include": ["./src/**/*"]
