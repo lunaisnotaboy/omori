@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": true,
+    "ignoreDeprecations": "5.0",
+    "isolatedModules": false,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "outDir": "./js",
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "target": "es5"
+  },
+  "exclude": ["./various/**/*"],
+  "include": ["./src/**/*"]
+}
