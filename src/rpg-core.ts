@@ -1796,7 +1796,7 @@ abstract class Graphics {
       document.fonts.ready.then(fonts => {
         Graphics._fontLoaded = fonts
       }).catch(err => {
-        // SceneManager.onError(err)
+        SceneManager.onError(err)
       })
     }
   }
@@ -4990,7 +4990,7 @@ abstract class ResourceHandler {
         if (url) {
           if (reloaders.length === 0) {
             Graphics.printLoadingError(url)
-            // SceneManager.stop()
+            SceneManager.stop()
           }
 
           reloaders.push(() => {
@@ -5010,7 +5010,7 @@ abstract class ResourceHandler {
   public static retry() {
     if (this._reloaders.length > 0) {
       Graphics.eraseLoadingError()
-      // SceneManager.resume()
+      SceneManager.resume()
 
       this._reloaders.forEach(reloader => {
         reloader()
