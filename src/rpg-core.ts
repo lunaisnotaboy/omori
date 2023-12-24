@@ -3740,7 +3740,9 @@ abstract class Decrypter {
     return url.slice(0, url.lastIndexOf(ext) - 1) + outExt
   }
 
-  public static readEncryptionKey() {}
+  public static readEncryptionKey() {
+    return '6bdb2e585882fbd48826ef9cffd4c511'
+  }
 }
 
 //------------------------------------------------------------------------------
