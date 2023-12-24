@@ -4,7 +4,9 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
-    "build": "mkdir -p dist && tar xf game.tar -C dist && tsc",
+    "build": "tsc",
+    "extract": "tar -C ./dist xf game.tar",
+    "setup": "mkdir -p ./dist && yarn extract",
     "start": "nw dist"
   },
   "devDependencies": {
