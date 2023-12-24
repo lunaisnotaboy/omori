@@ -3741,7 +3741,7 @@ abstract class Decrypter {
   }
 
   public static readEncryptionKey() {
-    return '6bdb2e585882fbd48826ef9cffd4c511'
+    this._encryptionKey = '6bdb2e585882fbd48826ef9cffd4c511'
   }
 }
 
