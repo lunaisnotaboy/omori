@@ -3,13 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "build": "tsc"
+    "build": "mkdir -p dist && tar xf game.tar -C dist && tsc",
+    "start": "nw dist"
   },
   "devDependencies": {
     "@types/fpsmeter": "^0.3.34",
+    "@types/node": "^20.10.5",
     "@types/nw.gui": "^0.0.24",
     "@types/nw.js": "^0.13.20",
     "@types/pixi.js": "^4.8.9",
     "typescript": "^4.9.5"
-  }
+  },
+  "type": "module"
 }
