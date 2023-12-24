@@ -12,7 +12,7 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ESNext"
+    "target": "esnext"
   },
   "exclude": ["./various/**/*"],
   "include": ["./src/**/*"]
